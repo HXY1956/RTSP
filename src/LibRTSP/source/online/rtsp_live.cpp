@@ -13,6 +13,9 @@ RTSP_BASE::RTSP_BASE(AudioInfo* Aset, CamInfo* Cset, RtspInfo* Rset) {
     IP = Rset->IP;
     port = Rset->port;
     suffix = Rset->suffix;
+    if(Rset->vformat == "H264") zipF = zip_format::H264;
+    else if(Rset->vformat == "H265") zipF = zip_format::H265;
+    else if(Rset->vformat == "RAW") zipF = zip_format::RAW;
 }
 
 void RTSP_BASE::push_video_frame(const cv::Mat& mat, const uint64_t& pts_ns) {
@@ -230,23 +233,40 @@ bool RTSP_LIVE::Init() {
 
     std::ostringstream launch;
 
+    std::string vpipe;
+    // switch(zipF){
+    //     case RTSP::zip_format::RAW:
+    //     vpipe = "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
+    //     vpipe += "rtpvrawpay ";
+    //     break;
+    //     case RTSP::zip_format::H264:
+    //     vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
+    //     vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
+    //     vpipe += "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! rtph264pay ";
+    //     break;
+    //     case RTSP::zip_format::H265:
+    //     vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
+    //     vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! "
+    //     vpipe += "x265enc tune=zerolatency key-int-max=15 speed-preset=ultrafast ! h265parse config-interval=1 ! rtph265pay ";
+    //     break;
+    // }
+    vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
+    vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
+    vpipe += "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! rtph264pay ";
+
     // 视频流 (payload 96)
     launch << "( appsrc name=videosrc is-live=true format=time caps=video/x-raw,format=" << format
            << ",width=" << Isize.first << ",height=" << Isize.second
            << ",framerate=" << framerate << "/1 ! ";
-    launch << "videoconvert ! video/x-raw,format=I420 ! ";
-    launch << "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-    launch << "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! ";
-    launch << "rtph264pay name=pay0 pt=96 ) ";
+    launch << vpipe;
+    launch << "name=pay0 pt=96 ) ";
 
     // 去雾视频流 (payload 97)
     launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
            << ",width=" << Isize.first << ",height=" << Isize.second
            << ",framerate=" << framerate << "/1 ! ";
-    launch << "videoconvert ! video/x-raw,format=I420 ! ";
-    launch << "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-    launch << "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! ";
-    launch << "rtph264pay name=pay1 pt=97 ) ";
+    launch << vpipe;
+    launch << "name=pay1 pt=97 ) ";
 
     // 音频流 (payload 98)
     launch << "( appsrc name=audiosrc is-live=true format=time caps=audio/x-raw,format=" << audio_format

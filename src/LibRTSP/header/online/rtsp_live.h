@@ -18,6 +18,11 @@
 using namespace BASE;
 
 namespace RTSP {
+    enum class zip_format{
+        H264,
+        H265,
+        RAW
+    };
 
 class RTSP_BASE {
 public:
@@ -41,6 +46,7 @@ protected:
     int port;
     std::string suffix;
     std::string audio_format;
+    zip_format zipF;
 
     GstElement* video_src = nullptr;
     GstElement* audio_src = nullptr;
