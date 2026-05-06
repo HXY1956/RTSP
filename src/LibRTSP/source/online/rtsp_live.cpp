@@ -42,6 +42,9 @@ void RTSP_BASE::push_video_frame(const cv::Mat& mat, const uint64_t& pts_ns) {
     GST_BUFFER_DURATION(buffer) = (gint64)(GST_SECOND / framerate);
 
     GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(video_src), buffer);
+    if (ret == GST_FLOW_FLUSHING) {
+        return;
+    }
     if (ret != GST_FLOW_OK) {
         std::cerr << "Origin Failed One Epoch\n";
     }
@@ -70,6 +73,9 @@ void RTSP_BASE::push_smoke_frame(const cv::Mat& mat, const uint64_t& pts_ns) {
     GST_BUFFER_DURATION(buffer) = (gint64)(GST_SECOND / framerate);
 
     GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(smoke_src), buffer);
+    if (ret == GST_FLOW_FLUSHING) {
+        return;
+    }
     if (ret != GST_FLOW_OK) {
         std::cerr << "Smoke Failed One Epoch\n";
     }
@@ -104,6 +110,9 @@ void RTSP_BASE::push_audio_frame(const std::vector<uint8_t>& pcm_s16, const uint
     GST_BUFFER_DTS(buffer) = (GstClockTime)_pts_ns;
 
     GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(audio_src), buffer);
+    if (ret == GST_FLOW_FLUSHING) {
+        return;
+    }
     if (ret != GST_FLOW_OK) {
         std::cerr << "Audio Failed One Epoch\n";
     }
@@ -127,60 +136,55 @@ void RTSP_LIVE::cleanup() {
     should_stop = true;
     paused = true;
 
-    if (server_id != 0) {
-        server_id = 0;
+    if (server) {
+        gst_rtsp_server_client_filter(server,
+            [](GstRTSPServer*, GstRTSPClient* client, gpointer) {
+                gst_rtsp_client_close(client);
+                return GST_RTSP_FILTER_REMOVE;
+            },
+            NULL);
     }
 
     if (loop && g_main_loop_is_running(loop)) {
         g_main_loop_quit(loop);
     }
-
     if (worker.joinable()) {
         worker.join();
     }
 
-    auto cleanup_appsrc = [](GstElement*& src) {
-        if (src && GST_IS_APP_SRC(src)) {
-            gst_app_src_end_of_stream(GST_APP_SRC(src));
-            gst_object_unref(src);
-            src = nullptr;
-        }
-    };
-    cleanup_appsrc(video_src);
-    cleanup_appsrc(audio_src);
-    cleanup_appsrc(smoke_src);
-
-    if (factory) {
+    if (factory && G_IS_OBJECT(factory)) {
         g_signal_handlers_disconnect_by_func(factory, (gpointer)media_config, this);
-        g_signal_handlers_disconnect_by_func(factory, (gpointer)client_removed_connection, this);
-        gst_object_unref(factory);
-        factory = nullptr;
     }
 
-    if (server) {
+    if (server && G_IS_OBJECT(server)) {
         gst_object_unref(server);
         server = nullptr;
     }
 
+    factory = nullptr;
+
     if (loop) {
-        while (g_main_loop_is_running(loop)) {
-            g_usleep(10000);
-        }
         g_main_loop_unref(loop);
         loop = nullptr;
     }
-
     if (context) {
         g_main_context_unref(context);
         context = nullptr;
     }
 
+    video_src = nullptr;
+    audio_src = nullptr;
+    smoke_src = nullptr;
+
+    server_id = 0;
     should_stop = false;
     paused = false;
     stream_start_pts = 0;
     curr_pts_video = 0;
     curr_pts_audio = 0;
     is_initialized = false;
+
+    std::cerr << "[RTSP] Main Loop Stopped" << std::endl;
 }
 
 bool RTSP_LIVE::Init() {

@@ -19,7 +19,7 @@ namespace QT {
         Audios = AUDIO_CODER::listFFmpegAudioDevices();
         mainparam = loadParams();
         setupUi();
-        setWindowTitle("RTSP推流端");
+        setWindowTitle("推流客户端v1.0.2");
     }
 
     MainWindow::~MainWindow() {
@@ -320,8 +320,10 @@ namespace QT {
     void MainWindow::onVideoStopped(){
         ImgReadThread.quit(); 
         ImgReadThread.wait();
-        VisLabel1->clear();
+        VisLabel1->clear();        
         VisLabel2->clear();
+        VisLabel1->setText("原图");
+        VisLabel2->setText("去雾");
     }
     void MainWindow::onAudioStopped(){
         AudioReadThread.quit(); AudioReadThread.wait();
@@ -694,7 +696,7 @@ namespace QT {
 
         VisLabel1 = std::make_unique<QLabel>();
         VisLabel1->setAlignment(Qt::AlignCenter);
-        VisLabel1->setText("图像1");
+        VisLabel1->setText("原图");
         VisLabel1->setFixedWidth(592);
         VisLabel1->setFixedHeight(333);
         visLayout1->addWidget(VisLabel1.get());
@@ -703,7 +705,7 @@ namespace QT {
 
         VisLabel2 = std::make_unique<QLabel>();
         VisLabel2->setAlignment(Qt::AlignCenter);
-        VisLabel2->setText("图像2");
+        VisLabel2->setText("去雾");
         VisLabel2->setFixedWidth(592);
         VisLabel2->setFixedHeight(333);
         visLayout2->addWidget(VisLabel2.get());
