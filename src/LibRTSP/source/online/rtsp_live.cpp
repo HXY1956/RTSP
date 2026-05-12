@@ -83,7 +83,7 @@ void RTSP_BASE::push_smoke_frame(const cv::Mat& mat, const uint64_t& pts_ns) {
 
 void RTSP_BASE::push_audio_frame(const std::vector<uint8_t>& pcm_s16, const uint64_t& pts_ns) {
     curr_pts_audio = pts_ns;
-
+ 
     if (paused || should_stop || !audio_src || !GST_IS_APP_SRC(audio_src))
         return;
 
@@ -180,8 +180,8 @@ void RTSP_LIVE::cleanup() {
     should_stop = false;
     paused = false;
     stream_start_pts = 0;
-    curr_pts_video = 0;
-    curr_pts_audio = 0;
+    curr_pts_video = UINT64_MAX;
+    curr_pts_audio = UINT64_MAX;
     is_initialized = false;
 
     std::cerr << "[RTSP] Main Loop Stopped" << std::endl;
@@ -365,6 +365,7 @@ GstFlowReturn RTSP_LIVE::media_config(GstRTSPMediaFactory* factory, GstRTSPMedia
     g_signal_connect(media, "unprepared", G_CALLBACK(client_removed_connection), self);
 
     self->stream_start_pts = std::min(self->curr_pts_audio, self->curr_pts_video);
+    if(self->stream_start_pts == UINT64_MAX) self->stream_start_pts = 0;
 
     self->paused = false;
 

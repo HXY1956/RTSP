@@ -11,6 +11,7 @@
 #include <sstream>
 #include <iostream>
 #include <cstring>
+#include <cstdint>
 #include <vector>
 #include "base_global.h"
 #include "base_mutex.h"
@@ -53,8 +54,8 @@ protected:
     GstElement* smoke_src = nullptr;
 
     uint64_t stream_start_pts = 0;
-    uint64_t curr_pts_video = 0;
-    uint64_t curr_pts_audio = 0;
+    uint64_t curr_pts_video = UINT64_MAX;
+    uint64_t curr_pts_audio = UINT64_MAX;
 
     std::atomic<bool> paused{ false };
     std::atomic<bool> should_stop{ false };
