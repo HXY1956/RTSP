@@ -238,26 +238,23 @@ bool RTSP_LIVE::Init() {
     std::ostringstream launch;
 
     std::string vpipe;
-    // switch(zipF){
-    //     case RTSP::zip_format::RAW:
-    //     vpipe = "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-    //     vpipe += "rtpvrawpay ";
-    //     break;
-    //     case RTSP::zip_format::H264:
-    //     vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
-    //     vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-    //     vpipe += "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! rtph264pay ";
-    //     break;
-    //     case RTSP::zip_format::H265:
-    //     vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
-    //     vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! "
-    //     vpipe += "x265enc tune=zerolatency key-int-max=15 speed-preset=ultrafast ! h265parse config-interval=1 ! rtph265pay ";
-    //     break;
-    // }
-    vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
-    vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-    vpipe += "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! rtph264pay ";
-
+    switch(zipF){
+        case RTSP::zip_format::RAW:
+        vpipe = "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
+        vpipe += "rtpvrawpay ";
+        break;
+        case RTSP::zip_format::H264:
+        vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
+        vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
+        vpipe += "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! rtph264pay ";
+        break;
+        case RTSP::zip_format::H265:
+        vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
+        vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! "
+        vpipe += "x265enc tune=zerolatency key-int-max=15 speed-preset=ultrafast ! h265parse config-interval=1 ! rtph265pay ";
+        break;
+    }
+    
     // 视频流 (payload 96)
     launch << "( appsrc name=videosrc is-live=true format=time caps=video/x-raw,format=" << format
            << ",width=" << Isize.first << ",height=" << Isize.second
