@@ -32,18 +32,11 @@ bool RTSP::RTSP_FILE::Init() {
     std::ostringstream launch;
 
     switch(zipF){
-        // case RTSP::zip_format::H264:{
-        //     launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
-        //     << ",width=" << std::to_string(Isize.first) << ",height=" << std::to_string(Isize.second) <<",framerate="<<framerate<<"/1"
-        //     << " ! videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h264enc bitrate=5000000 key-int-max=30 insert-sps-pps=true ! "
-        //        "h264parse config-interval=-1 ! video/x-h264,stream-format=avc,alignment=au ! queue ! mux. ) " ;
-        //     break;
-        // }
         case RTSP::zip_format::H264:{
             launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
             << ",width=" << std::to_string(Isize.first) << ",height=" << std::to_string(Isize.second) <<",framerate="<<framerate<<"/1"
-            << " ! videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h265enc bitrate=5000000 key-int-max=30 ! "
-               "h265parse ! video/x-h265,stream-format=hvc1,alignment=au ! queue ! mux. ) " ;
+            << " ! videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h264enc bitrate=5000000 key-int-max=30 ! "
+               "h264parse ! video/x-h264,stream-format=avc,alignment=au ! queue ! mux. ) " ;
             break;
         }
         case RTSP::zip_format::H265:{

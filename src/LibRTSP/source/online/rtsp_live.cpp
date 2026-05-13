@@ -251,9 +251,17 @@ bool RTSP_LIVE::Init() {
         vpipe += "x264enc tune=zerolatency byte-stream=true key-int-max=15 speed-preset=ultrafast bframes=0 intra-refresh=true ! rtph264pay ";
         break;
         case RTSP::zip_format::H265:
-        vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
-        vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-        vpipe += "x265enc tune=zerolatency key-int-max=15 speed-preset=ultrafast bframes=0 ! h265parse ! video/x-h265,stream-format=byte-stream ! rtph265pay config-interval=1 ";
+        vpipe = "videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! "
+                "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! "
+                "nvv4l2h265enc "
+                "idrinterval=15 "
+                "iframeinterval=15 "
+                "control-rate=1 "
+                "bitrate=4000000 "
+                "preset-level=1 "
+                "maxperf-enable=true "
+                "! h265parse config-interval=-1 "
+                "! rtph265pay ";
         break;
     }
 
