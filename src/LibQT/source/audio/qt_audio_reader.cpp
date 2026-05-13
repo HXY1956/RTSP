@@ -15,6 +15,7 @@ namespace QT {
         else if (mode == ProcMode::OFFLINE) {
             coder = std::make_unique<AUDIO_DECODER>(Aset);
         }
+        Status = Aset.status;
     };
     QT_AUDIO_READER::~QT_AUDIO_READER() {
     };
@@ -57,6 +58,7 @@ namespace QT {
     }
 
     void QT_AUDIO_READER::startWork() {
+        if(!Status) return;
         if (!coder->Init()) {
             std::cerr << "Open Audio Stream Failed or No Audio Stream." << std::endl;
             Status = false;

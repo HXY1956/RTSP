@@ -17,6 +17,7 @@ namespace QT {
         else if (mode == ProcMode::OFFLINE) {
             coder = std::make_unique<VIS_DECODER>(set);
         }
+        Status = set.status;
     }
 
     QT_IMG_READER::~QT_IMG_READER() {
@@ -57,6 +58,7 @@ namespace QT {
     }
 
     void QT_IMG_READER::startWork() {
+        if(!Status) return;
         if (!coder->Init()) {
             std::cerr << "Open Video Stream Failed or No Video Stream" << std::endl;
             Status = false;

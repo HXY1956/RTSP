@@ -19,6 +19,7 @@ namespace BASE {
     extern int64_t ProjectStartTime;
 
     struct AudioInfo {
+        bool status = false;
         int channels = 2;
         int sample_rate = 48000;
         int sample_size = 2;
@@ -33,6 +34,7 @@ namespace BASE {
     };
 
     struct CamInfo {
+        bool status = false;
         CamType camtype;
         std::string devicepath = "";
         std::string format = "RGB";

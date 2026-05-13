@@ -44,7 +44,8 @@ namespace QT {
         samplerateCombo->setCurrentText(mainparam.samplerate);
         samplesizeCombo->setCurrentText(mainparam.samplesize);
         audiopathEdit->setText(mainparam.audiopath);
-
+        streamchannelCombo->setCurrentText(mainparam.streamchannel);
+    
         rtspIPEdit->setText(mainparam.rtspurl);
         rtspportEdit->setText(mainparam.port);
         rtspsuffixEdit->setText(mainparam.suffix);
@@ -66,6 +67,7 @@ namespace QT {
     {
         QSettings s("HXY", "RTSP");
         MainParams p;
+        p.streamchannel     = s.value("streamchannel",p.streamchannel).toString();
         p.sensormode        = s.value("sensormode",p.sensormode).toString();
         p.rtspmode          = s.value("rtspmode",p.rtspmode).toString();
         p.framerate         = s.value("framerate",p.framerate).toString();
@@ -93,6 +95,7 @@ namespace QT {
     void MainWindow::saveParams(const MainParams& p)
     {
         QSettings s("HXY", "RTSP");
+        s.setValue("streamchannel",p.streamchannel);
         s.setValue("sensormode",p.sensormode);
         s.setValue("rtspmode",p.rtspmode);
         s.setValue("framerate",p.framerate);
@@ -151,9 +154,20 @@ namespace QT {
         Rset.way = mainparam.srmethod.toInt();
         Rset.vformat = mainparam.writeformat.toStdString();
 
-
         if (RtspMode == ProcMode::OFFLINE && Rset.filepath == "") showErrorAndExit("You Should Browse the Media Output File if Using File Mode !");
         if (SensorMode == ProcMode::OFFLINE && (Aset.filepath == "" || Cset.filepath == "")) showErrorAndExit("You Should Browse the Video && Audio Input File if Using File Mode !");
+        if(mainparam.streamchannel == QString("音视频")){
+            Cset.status = true;
+            Aset.status = true;
+        }
+        else if(mainparam.streamchannel == QString("纯视频")){
+            Cset.status = true;
+            Aset.status = false;
+        }
+        else if(mainparam.streamchannel == QString("纯音频")){
+            Cset.status = false;
+            Aset.status = true;
+        }
     }
 
     void MainWindow::Init() {
@@ -450,8 +464,16 @@ namespace QT {
         rtspGroup->addButton(rbr2.get(), 1);
         rtspGroup->setExclusive(true);
 
+        streamchannelCombo = makeCombo("推流格式:", ModeBox, ModeLayout);
+        streamchannelCombo->addItems({ "音视频","纯音频","纯视频" });
+        streamchannelCombo->setCurrentText(mainparam.streamchannel);
+        connect(streamchannelCombo.get(), QOverload<int>::of(&QComboBox::currentIndexChanged),this, [=](int index){
+            if (index == -1) return;
+            mainparam.streamchannel = streamchannelCombo->currentText();
+        });
+
         ModeBox->setLayout(ModeLayout);
-        ModeBox->setFixedHeight(90);
+        ModeBox->setFixedHeight(130);
         ModeBox->setFixedWidth(450);
         settings->addWidget(ModeBox);
 
@@ -632,7 +654,7 @@ namespace QT {
         audioLayout->addRow("音频路径:", audiopathLayout);
 
         audioBox->setLayout(audioLayout);
-        audioBox->setFixedHeight(230);
+        audioBox->setFixedHeight(210);
         audioBox->setFixedWidth(450);
         settings->addStretch();
         settings->addWidget(audioBox);
@@ -688,7 +710,7 @@ namespace QT {
         rtspBoxLayout->addLayout(rtspLayout);   
         rtspBoxLayout->setAlignment(rtspLayout, Qt::AlignCenter); 
         rtspBox->setLayout(rtspBoxLayout);
-        rtspBox->setFixedHeight(250);
+        rtspBox->setFixedHeight(240);
         rtspBox->setFixedWidth(450);
         settings->addStretch();
         settings->addWidget(rtspBox);

@@ -41,6 +41,7 @@ namespace QT {
     struct MainParams {
         QString sensormode   = "0";
         QString rtspmode     = "0";
+        QString streamchannel  = "音视频";
         QString framerate    = "30";
         QString width        = "1920";
         QString height       = "1080";
@@ -178,6 +179,8 @@ namespace QT {
         std::unique_ptr<QLabel> AudioTime{};
         std::unique_ptr<QLabel> VisLabel1{};
         std::unique_ptr<QLabel> VisLabel2{};
+
+        std::unique_ptr<QComboBox> streamchannelCombo;
 
         std::unique_ptr<QButtonGroup> sensorGroup;
         std::unique_ptr<QRadioButton> rbs1;

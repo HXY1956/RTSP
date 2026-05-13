@@ -16,6 +16,8 @@ RTSP_BASE::RTSP_BASE(AudioInfo* Aset, CamInfo* Cset, RtspInfo* Rset) {
     if(Rset->vformat == "H264") zipF = zip_format::H264;
     else if(Rset->vformat == "H265") zipF = zip_format::H265;
     else if(Rset->vformat == "RAW") zipF = zip_format::RAW;
+    isVideo = Cset->status;
+    isAudio = Aset->status;
 }
 
 void RTSP_BASE::push_video_frame(const cv::Mat& mat, const uint64_t& pts_ns) {
@@ -250,32 +252,37 @@ bool RTSP_LIVE::Init() {
         break;
         case RTSP::zip_format::H265:
         vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
-        vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! "
-        vpipe += "x265enc tune=zerolatency key-int-max=15 speed-preset=ultrafast ! h265parse config-interval=1 ! rtph265pay ";
+        vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
+        vpipe += "x265enc tune=zerolatency key-int-max=15 speed-preset=ultrafast bframes=0 ! h265parse ! video/x-h265,stream-format=byte-stream ! rtph265pay config-interval=1 ";
         break;
     }
-    
-    // 视频流 (payload 96)
-    launch << "( appsrc name=videosrc is-live=true format=time caps=video/x-raw,format=" << format
-           << ",width=" << Isize.first << ",height=" << Isize.second
-           << ",framerate=" << framerate << "/1 ! ";
-    launch << vpipe;
-    launch << "name=pay0 pt=96 ) ";
 
-    // 去雾视频流 (payload 97)
-    launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
-           << ",width=" << Isize.first << ",height=" << Isize.second
-           << ",framerate=" << framerate << "/1 ! ";
-    launch << vpipe;
-    launch << "name=pay1 pt=97 ) ";
+    int payIndex = 0;
 
-    // 音频流 (payload 98)
-    launch << "( appsrc name=audiosrc is-live=true format=time caps=audio/x-raw,format=" << audio_format
-           << ",channels=" << channels << ",rate=" << sample_rate
-           << ",layout=interleaved ! ";
-    launch << "audioconvert ! audioresample ! ";
-    launch << "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-    launch << "voaacenc ! rtpmp4apay name=pay2 pt=98 )";
+    if(isVideo){
+        // 视频流 (payload 96)
+        launch << "( appsrc name=videosrc is-live=true format=time caps=video/x-raw,format=" << format
+               << ",width=" << Isize.first << ",height=" << Isize.second
+               << ",framerate=" << framerate << "/1 ! ";
+        launch << vpipe;
+        launch << "name=pay" << payIndex++ << " pt=96 ) ";
+
+        // 去雾视频流 (payload 97)
+        launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
+               << ",width=" << Isize.first << ",height=" << Isize.second
+               << ",framerate=" << framerate << "/1 ! ";
+        launch << vpipe;
+        launch << "name=pay" << payIndex++ << " pt=97 ) ";
+    }
+    if(isAudio){
+        // 音频流 (payload 98)
+        launch << "( appsrc name=audiosrc is-live=true format=time caps=audio/x-raw,format=" << audio_format
+               << ",channels=" << channels << ",rate=" << sample_rate
+               << ",layout=interleaved ! ";
+        launch << "audioconvert ! audioresample ! ";
+        launch << "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
+        launch << "voaacenc ! rtpmp4apay "<< "name=pay" << payIndex++ << " pt=98 )";
+    }
 
     std::string launch_str = launch.str();
 
@@ -329,24 +336,6 @@ GstFlowReturn RTSP_LIVE::media_config(GstRTSPMediaFactory* factory, GstRTSPMedia
 
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
-    if (self->video_src) {
-        gst_object_unref(self->video_src);
-        self->video_src = nullptr;
-    }
-    self->video_src = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "videosrc");
-
-    if (self->audio_src) {
-        gst_object_unref(self->audio_src);
-        self->audio_src = nullptr;
-    }
-    self->audio_src = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "audiosrc");
-
-    if (self->smoke_src) {
-        gst_object_unref(self->smoke_src);
-        self->smoke_src = nullptr;
-    }
-    self->smoke_src = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "smokesrc");
-
     auto config_appsrc = [](GstElement* src, const char* name) {
         if (src && GST_IS_APP_SRC(src)) {
             g_object_set(src, "is-live", TRUE, "block", FALSE, "min-latency", 0, "max-latency", 0, NULL);
@@ -354,9 +343,32 @@ GstFlowReturn RTSP_LIVE::media_config(GstRTSPMediaFactory* factory, GstRTSPMedia
             g_printerr("%s not ready\n", name);
         }
     };
-    config_appsrc(self->video_src, "videosrc");
-    config_appsrc(self->audio_src, "audiosrc");
-    config_appsrc(self->smoke_src, "smokesrc");
+
+    if(self->isVideo){
+        if (self->video_src) {
+            gst_object_unref(self->video_src);
+            self->video_src = nullptr;
+        }
+        self->video_src = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "videosrc");
+
+        if (self->smoke_src) {
+            gst_object_unref(self->smoke_src);
+            self->smoke_src = nullptr;
+        }
+        self->smoke_src = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "smokesrc");
+
+        config_appsrc(self->video_src, "videosrc");
+        config_appsrc(self->smoke_src, "smokesrc");
+    }
+    if(self->isAudio){
+        if (self->audio_src) {
+            gst_object_unref(self->audio_src);
+            self->audio_src = nullptr;
+        }
+        self->audio_src = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "audiosrc");
+
+        config_appsrc(self->audio_src, "audiosrc");
+    }
 
     g_signal_handlers_disconnect_by_func(media, (gpointer)client_removed_connection, self);
     g_signal_connect(media, "unprepared", G_CALLBACK(client_removed_connection), self);

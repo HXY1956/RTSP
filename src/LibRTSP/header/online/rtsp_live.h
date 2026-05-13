@@ -59,6 +59,9 @@ protected:
 
     std::atomic<bool> paused{ false };
     std::atomic<bool> should_stop{ false };
+
+    bool isVideo = false;
+    bool isAudio = false;
 };
 
 class RTSP_LIVE : public RTSP_BASE {
@@ -73,9 +76,9 @@ private:
     GMainLoop* loop = nullptr;
     GstRTSPServer* server = nullptr;
     GstRTSPMediaFactory* factory = nullptr;
-    GMainContext* context = nullptr;  // 使用 GMainContext 而不是 GCancellable
+    GMainContext* context = nullptr; 
     std::thread worker;
-    guint server_id = 0;               // 保存 attach 返回的 ID
+    guint server_id = 0;             
 
     bool is_initialized = false;
 
@@ -85,6 +88,6 @@ private:
     static GstFlowReturn client_removed_connection(GstRTSPMediaFactory* factory, GstRTSPMedia* media, gpointer user_data);
 };
 
-} // namespace RTSP
+}
 
-#endif // RTSP_LIVE_H
+#endif
