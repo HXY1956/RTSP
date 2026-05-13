@@ -50,6 +50,7 @@ namespace QT {
         rtspportEdit->setText(mainparam.port);
         rtspsuffixEdit->setText(mainparam.suffix);
         rtsppathEdit->setText(mainparam.rtsppath);
+        savepathEdit->setText(mainparam.savepath);
 
         rbs1->setChecked(true);
         rbs2->setChecked(false);
@@ -86,6 +87,7 @@ namespace QT {
         p.port              = s.value("port",p.port).toString();
         p.suffix            = s.value("suffix",p.suffix).toString();
         p.rtsppath          = s.value("rtsppath",p.rtsppath).toString();
+        p.savepath          = s.value("savepath",p.savepath).toString();
         p.noisemode          = s.value("noisemode",p.noisemode).toString();
 
 
@@ -111,6 +113,7 @@ namespace QT {
         s.setValue("samplesize",p.samplesize);
         s.setValue("audiopath",p.audiopath);
         s.setValue("rtspurl",p.rtspurl);
+        s.setValue("savepath",p.savepath);
         s.setValue("port",p.port);
         s.setValue("suffix",p.suffix);
         s.setValue("rtsppath",p.rtsppath);
@@ -149,6 +152,7 @@ namespace QT {
         RtspMode = (mainparam.rtspmode == "0") ? ProcMode::ONLINE : ProcMode::OFFLINE;
         Rset.IP = mainparam.rtspurl.toStdString();
         Rset.filepath = mainparam.rtsppath.toStdString();
+        Rset.savepath = mainparam.savepath.toStdString();
         Rset.port = mainparam.port.toInt();
         Rset.suffix = mainparam.suffix.toStdString();
         Rset.way = mainparam.srmethod.toInt();
@@ -215,6 +219,10 @@ namespace QT {
         connect(RtspWorker.get(), &QT_RTSP_CLIENT::stopped,
             this, &MainWindow::onRtspStopped,
             Qt::QueuedConnection);
+        connect(this, &MainWindow::startPick,
+            RtspWorker.get(), &QT_RTSP_CLIENT::startPick, Qt::QueuedConnection);
+        connect(this, &MainWindow::stopPick,
+            RtspWorker.get(), &QT_RTSP_CLIENT::stopPick, Qt::QueuedConnection);
 
         // SEND - ACCEPT
         connect(ImgReader.get(), &QT_IMG_READER::NewImage,
@@ -398,7 +406,7 @@ namespace QT {
         auto others = new QVBoxLayout();
 
         int row = 0, col = 0;
-        const int Cols = 1;
+        const int Cols = 2;
         auto addBtn = [&](QPushButton* btn) {
             btnGrid->addWidget(btn, row, col);
             if (++col == Cols) { col = 0; ++row; }
@@ -427,9 +435,13 @@ namespace QT {
         btnStartALL_ = makeBtn("开始推流");
         btnStopALL_ = makeBtn("停止推流");
         btnQuit_ = makeBtn("退出程序");
-
+        btnStartPick_ = makeBtn("开始录制");
+        btnStopPick_ = makeBtn("停止录制");
+        
         addBtn(btnStartALL_.get());
         addBtn(btnStopALL_.get());
+        addBtn(btnStartPick_.get());
+        addBtn(btnStopPick_.get());
         addBtn(btnQuit_.get());
 
         rbs1 = makeRadio("直播");
@@ -543,7 +555,7 @@ namespace QT {
 
 
         viszipformat = makeCombo("压缩格式:", videoBox, videoLayout);
-        viszipformat->addItems({ "RAW","H264","H265"});
+        viszipformat->addItems({"H264","H265"});
         viszipformat->setCurrentText(mainparam.writeformat);
         connect(viszipformat.get(), QOverload<int>::of(&QComboBox::currentIndexChanged),this, [=](int index){
             if (index == -1) return;
@@ -695,6 +707,45 @@ namespace QT {
         rtsppathLayout->addWidget(browseBtn2);
         rtspLayout->addRow("输出路径:", rtsppathLayout);
 
+        savepathEdit = std::make_unique<QLineEdit>(rtspBox);
+        savepathEdit->setText(mainparam.savepath);
+        QPushButton* browseBtn4 = new QPushButton("浏览", this);
+        connect(browseBtn4, &QPushButton::clicked, this, [this]() {
+            QString dirPath = QFileDialog::getExistingDirectory(
+                this,
+                "Select or Create Directory",
+                "",
+                QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+            );
+
+            if (!dirPath.isEmpty()) {
+                QDir dir;
+
+                if (!dir.exists(dirPath)) {
+                    if (!dir.mkpath(dirPath)) {
+                        qDebug() << "Failed to create main directory";
+                         return;
+                    }
+                }
+
+                if (dir.mkpath(dirPath + "/remove_smoke") && dir.mkpath(dirPath + "/origin")) {
+                    mainparam.savepath = dirPath;
+                    savepathEdit->setText(dirPath);
+                    qDebug() << "Directories ready:" << dirPath;
+                }
+                else {
+                    qDebug() << "Failed to create subdirectories";
+                }
+            }
+            });
+        connect(savepathEdit.get(), &QLineEdit::editingFinished, this, [=](){
+            mainparam.savepath = savepathEdit->text();
+        });
+        QHBoxLayout* savepathLayout = new QHBoxLayout();
+        savepathLayout->addWidget(savepathEdit.get());
+        savepathLayout->addWidget(browseBtn4);
+        rtspLayout->addRow("录制路径:", savepathLayout);
+
         savedefault = std::make_unique<QPushButton>("保存当前设置", this);  
         savedefault->setStyleSheet(btnStyle4);
         rtspLayout->addRow("保存设置:", savedefault.get());
@@ -710,11 +761,10 @@ namespace QT {
         rtspBoxLayout->addLayout(rtspLayout);   
         rtspBoxLayout->setAlignment(rtspLayout, Qt::AlignCenter); 
         rtspBox->setLayout(rtspBoxLayout);
-        rtspBox->setFixedHeight(240);
+        rtspBox->setFixedHeight(270);
         rtspBox->setFixedWidth(450);
         settings->addStretch();
         settings->addWidget(rtspBox);
-
 
         VisLabel1 = std::make_unique<QLabel>();
         VisLabel1->setAlignment(Qt::AlignCenter);
@@ -762,10 +812,14 @@ namespace QT {
         connect(btnparam.get(), &QPushButton::clicked, this, &MainWindow::onparam);
         connect(btnStartALL_.get(), &QPushButton::clicked, this, &MainWindow::onStart);
         connect(btnStopALL_.get(), &QPushButton::clicked, this, &MainWindow::onStop);
+        connect(btnStartPick_.get(), &QPushButton::clicked, this, &MainWindow::onStartPick);
+        connect(btnStopPick_.get(), &QPushButton::clicked, this, &MainWindow::onStopPick);
         connect(btnQuit_.get(), &QPushButton::clicked, this, &MainWindow::onQuit);
 
         btnStartALL_->setEnabled(true);
         btnStopALL_->setEnabled(false);
+        btnStartPick_->setEnabled(true);
+        btnStopPick_->setEnabled(false);
 
         paramwindow = std::make_unique<ParamWindow>(this);
     }
@@ -798,10 +852,33 @@ namespace QT {
 
     void MainWindow::onStop() {
         btnStartALL_->setStyleSheet(btnStyle1);
-        btnStartALL_->setEnabled(true);
+        btnStartPick_->setStyleSheet(btnStyle1);
+        btnStartALL_->setEnabled(false);
         btnStopALL_->setEnabled(false);
+        btnStartPick_->setEnabled(false);
+        btnStopPick_->setEnabled(false);
         if(paramwindow->isVisible()) paramwindow->hide();
         KillThread();
+        btnStartALL_->setEnabled(true);
+        btnStopALL_->setEnabled(false);
+        btnStartPick_->setEnabled(true);
+        btnStopPick_->setEnabled(false);
+    }
+
+        void MainWindow::onStartPick()
+    {
+        emit startPick();
+        btnStartPick_->setEnabled(false);
+        btnStopPick_->setEnabled(true);
+        btnStartPick_->setStyleSheet(btnStyle2);
+	}
+
+    void MainWindow::onStopPick()
+    {
+        emit stopPick();
+        btnStartPick_->setEnabled(true);
+        btnStopPick_->setEnabled(false);
+        btnStartPick_->setStyleSheet(btnStyle1);
     }
 
     void MainWindow::onQuit() {

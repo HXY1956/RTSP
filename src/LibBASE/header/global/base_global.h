@@ -50,6 +50,7 @@ namespace BASE {
         std::string IP;
         std::string suffix;
         std::string filepath;
+        std::string savepath;
         int way = 1;
         std::string vformat;
     };

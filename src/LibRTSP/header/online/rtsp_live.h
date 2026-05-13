@@ -21,8 +21,7 @@ using namespace BASE;
 namespace RTSP {
     enum class zip_format{
         H264,
-        H265,
-        RAW
+        H265
     };
 
 class RTSP_BASE {

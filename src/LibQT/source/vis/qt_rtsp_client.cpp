@@ -3,6 +3,7 @@
 #include "rtsp_file.h"
 #include "rtsp_live.h"
 #define signals protected
+#include "qt_file_saver.h"
 
 using namespace RTSP;
 
@@ -17,9 +18,27 @@ namespace QT {
         }
         _smokeRemover = std::make_unique<CudaSmokeRemover>();
         _smokeRemover->setRemoverMethods(Rset.way);
+        m_savePath = QString::fromStdString(Rset.savepath);
+        if (!m_savePath.isEmpty()) {
+            FILE_SAVER::ensureDirectoryExists(m_savePath.toStdString());
+            FILE_SAVER::ensureDirectoryExists((m_savePath + "/remove_smoke").toStdString());
+            FILE_SAVER::ensureDirectoryExists((m_savePath + "/origin").toStdString());
+        }
+        fileSaver1 = new FILE_SAVER(Aset, Cset, Rset, this);
+        fileSaver2 = new FILE_SAVER(Aset, Cset, Rset, this);
     }
 
     QT_RTSP_CLIENT::~QT_RTSP_CLIENT() {
+        if (fileSaver1) {
+            fileSaver1->stopThread();
+            delete fileSaver1;
+            fileSaver1 = nullptr;
+        }
+        if (fileSaver2) {
+            fileSaver2->stopThread();
+            delete fileSaver2;
+            fileSaver2 = nullptr;
+        }
     }
 
     struct EpochGuard {
@@ -32,7 +51,7 @@ namespace QT {
         if (self->activeEpochs.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (self->stop.load(std::memory_order_acquire)) {
                     self->rstp_worker->Stop();
-                    emit self->stopped();
+                    self->notifyStopped();
                 }
             }
         }
@@ -93,6 +112,20 @@ namespace QT {
         _smokeRemover->setFusionG(FusionG);
     }
 
+    void QT_RTSP_CLIENT::startPick(){
+        m_isPick = true;
+        m_isFirstPick = true;
+        first_pick_pts = UINT64_MAX;
+        fileSaver1->startRecord();
+        fileSaver2->startRecord();
+    }
+    void QT_RTSP_CLIENT::stopPick(){
+        m_isPick = false;
+		fileSaver1->stopRecord();
+        fileSaver2->stopRecord();
+        m_isFirstPick = false;
+    }
+
     void QT_RTSP_CLIENT::NewImage(uint64_t timestamp, cv::Mat Image) {
         if (stop.load()) {
             return;
@@ -101,6 +134,32 @@ namespace QT {
         rstp_worker->push_video_frame(Image, timestamp);
         cv::Mat sr = remove_smoke(Image);
         rstp_worker->push_smoke_frame(sr, timestamp);
+
+        if (m_isPick.load() && !m_savePath.isEmpty()) {
+            if (m_isFirstPick) {
+                QDateTime now = QDateTime::currentDateTime();
+                QString fileName = QString("video_%1.mp4")
+                    .arg(now.toString("yyyy_MM_dd_hh-mm-ss"));
+                QString fullPath1 = QString("%1/%2")
+                    .arg(m_savePath + "/origin")
+                    .arg(fileName);
+                QString fullPath2 = QString("%1/%2")
+                    .arg(m_savePath + "/remove_smoke")
+                    .arg(fileName);
+                fileSaver1->setfilepath(fullPath1.toStdString());
+                fileSaver2->setfilepath(fullPath2.toStdString());
+                fileSaver1->setStreamfirstpts(timestamp);
+                fileSaver2->setStreamfirstpts(timestamp);
+                first_pick_pts = timestamp;
+                m_isFirstPick = false;
+            }
+
+            if (first_pick_pts != UINT64_MAX && timestamp >= first_pick_pts) {
+                fileSaver1->push_video_frame(Image, timestamp);
+                fileSaver2->push_video_frame(sr, timestamp);
+            }
+        }
+
         emit ImageTime(timestamp);
         emit NewOrigin(Image);
         emit NewSmoke(sr);
@@ -112,6 +171,13 @@ namespace QT {
         }
         EpochGuard guard(this);
         rstp_worker->push_audio_frame(buffer, timestamp);
+
+        if (m_isPick.load() && !m_savePath.isEmpty()) {
+            if (first_pick_pts != UINT64_MAX && timestamp >= first_pick_pts) {
+                fileSaver1->push_audio_frame(buffer, timestamp);
+                fileSaver2->push_audio_frame(buffer, timestamp);
+            }
+        }
         emit AudioTime(timestamp);
     }
 
@@ -124,6 +190,16 @@ namespace QT {
         stop.store(true);
         if(activeEpochs == 0){
             rstp_worker->Stop();
+            if (fileSaver1) {
+                fileSaver1->stopThread();
+                delete fileSaver1;
+                fileSaver1 = nullptr;
+            }
+            if (fileSaver2) {
+                fileSaver2->stopThread();
+                delete fileSaver2;
+                fileSaver2 = nullptr;
+            }
             emit stopped();
         } 
     }

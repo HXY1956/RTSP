@@ -46,13 +46,6 @@ bool RTSP::RTSP_FILE::Init() {
                "h265parse ! video/x-h265,stream-format=hvc1,alignment=au ! queue ! mux. ) " ;
             break;
         }
-        case RTSP::zip_format::RAW:{
-            launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
-            << ",width=" << std::to_string(Isize.first) << ",height=" << std::to_string(Isize.second) <<",framerate="<<framerate<<"/1"
-            << " ! videoconvert ! video/x-raw,format=I420 ! "
-            << "queue ! mux. ) " ;
-            break;
-        }
     }
     launch  << "( appsrc name=audiosrc is-live=true format=time caps=audio/x-raw,format="<< audio_format
             << ",channels=" << std::to_string(channels) << ",rate=" << std::to_string(sample_rate) << ",layout=interleaved ! "

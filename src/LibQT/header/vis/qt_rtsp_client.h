@@ -9,15 +9,22 @@
 #include <QTimer>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QQueue>
+#include <QDebug>
+#include <QWaitCondition>
+#include <QDateTime>
+#include <QDir>
 #include "base_global.h"
 #include "qt_global.h"
 #include "gpu_algo_krl.h"
 
 using namespace BASE;
 using namespace SMOKE;
-
 namespace RTSP {
     class RTSP_BASE;
+}
+namespace QT{
+    class FILE_SAVER;
 }
 
 namespace QT {
@@ -26,6 +33,8 @@ namespace QT {
     public slots:
         void startWork();
         void stopWork();
+        void startPick();
+        void stopPick();
         void NewImage(uint64_t timestamp, cv::Mat Image);
         void NewAudio(uint64_t timestamp, std::vector<uint8_t> buffer);
         void NewRM(int way);
@@ -54,7 +63,10 @@ namespace QT {
     public:
         QT_RTSP_CLIENT(AudioInfo Aset, CamInfo Cset, RtspInfo Rset, ProcMode mode, QObject * parent = nullptr);
         ~QT_RTSP_CLIENT() override;
-
+        void notifyStopped()
+        {
+            emit stopped();
+        }
         std::atomic<bool> stop{ false };
         std::atomic<int> activeEpochs{0};
         std::unique_ptr<RTSP::RTSP_BASE> rstp_worker;
@@ -64,6 +76,13 @@ namespace QT {
         std::unique_ptr<CudaSmokeRemover> _smokeRemover;
         std::map<uint64_t, cv::Mat> image_storage;
         std::map<uint64_t, std::vector<uint8_t>> audio_storage;
+
+        std::atomic_bool m_isPick{ false };
+        std::atomic_bool m_isFirstPick{ false };
+        uint64_t first_pick_pts = UINT64_MAX;
+        QString m_savePath = "";
+        FILE_SAVER* fileSaver1 = nullptr;
+        FILE_SAVER* fileSaver2 = nullptr;
     };
 }
 

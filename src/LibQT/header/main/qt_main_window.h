@@ -59,6 +59,7 @@ namespace QT {
         QString suffix       = "live";
         QString rtsppath     = "";
         QString noisemode    = "0";
+        QString savepath     = "";
     };
     using DeviceInfo = std::map<std::string, std::string>;
 
@@ -73,6 +74,8 @@ namespace QT {
         void stopImageReader();
         void startAudioReader();
         void stopAudioReader();
+        void startPick();
+        void stopPick();
         void startRtspWorker();
         void stopRtspWorker();
         void NewRM(int way);
@@ -92,6 +95,8 @@ namespace QT {
         void onparam();
         void onStart();
         void onStop();
+        void onStartPick();
+        void onStopPick();
         void onQuit();
         void ImgTime(uint64_t timestamp) {
             VisTime->setText(QString::number(double(timestamp / 10e8), 'f', 3) + "(s)");
@@ -173,6 +178,8 @@ namespace QT {
         std::unique_ptr<QPushButton> btnparam{}; 
         std::unique_ptr<QPushButton> btnStartALL_{};
         std::unique_ptr<QPushButton> btnStopALL_{};
+        std::unique_ptr<QPushButton> btnStartPick_{};
+        std::unique_ptr<QPushButton> btnStopPick_{};
         std::unique_ptr<QPushButton> btnQuit_{};
         std::unique_ptr<QGroupBox> navBox{};
         std::unique_ptr<QLabel> VisTime{};
@@ -213,6 +220,7 @@ namespace QT {
         std::unique_ptr<QRadioButton> rbr2;
         std::unique_ptr<QLineEdit> rtspIPEdit;
         std::unique_ptr<QLineEdit> rtsppathEdit;
+        std::unique_ptr<QLineEdit> savepathEdit;
         std::unique_ptr<QLineEdit> rtspportEdit;
         std::unique_ptr<QLineEdit> rtspsuffixEdit;
         std::unique_ptr<QPushButton> savedefault;

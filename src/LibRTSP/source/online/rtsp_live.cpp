@@ -15,7 +15,6 @@ RTSP_BASE::RTSP_BASE(AudioInfo* Aset, CamInfo* Cset, RtspInfo* Rset) {
     suffix = Rset->suffix;
     if(Rset->vformat == "H264") zipF = zip_format::H264;
     else if(Rset->vformat == "H265") zipF = zip_format::H265;
-    else if(Rset->vformat == "RAW") zipF = zip_format::RAW;
     isVideo = Cset->status;
     isAudio = Aset->status;
 }
@@ -241,10 +240,6 @@ bool RTSP_LIVE::Init() {
 
     std::string vpipe;
     switch(zipF){
-        case RTSP::zip_format::RAW:
-        vpipe = "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
-        vpipe += "rtpvrawpay ";
-        break;
         case RTSP::zip_format::H264:
         vpipe = "videoconvert ! video/x-raw,format=I420 ! ";
         vpipe += "queue max-size-time=0 max-size-buffers=100 max-size-bytes=0 leaky=downstream ! ";
