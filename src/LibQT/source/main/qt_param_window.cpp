@@ -11,6 +11,10 @@ namespace QT {
         setWindowTitle("Smoke Removal Parameters");
     }
 
+    void ParamWindow::readfromui(){
+        ReadFromUI(smokeparam);
+    }
+
     void ParamWindow::resetToFactoryDefault()
     {
         QSettings s("HXY", "PARAM");

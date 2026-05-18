@@ -127,6 +127,9 @@ namespace QT {
                 }
             }
         }
+    
+    public:
+        void readfromui();
 
     private:
         void setupUi();

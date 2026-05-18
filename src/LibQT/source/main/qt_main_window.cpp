@@ -846,6 +846,7 @@ namespace QT {
         emit startImageReader();
         emit startAudioReader();
         emit startRtspWorker();
+        paramwindow->readfromui();
         btnStartALL_->setEnabled(false);
         btnStopALL_->setEnabled(true);
     }
