@@ -521,26 +521,26 @@ namespace QT {
         });
 
         origin = makeRadio("原始图像");
-        self_adjustment = makeRadio("自适应调整");     
+        // self_adjustment = makeRadio("自适应调整");     
         way1 = makeRadio("去雾方式一");
         way2 = makeRadio("去雾方式二");
         switch(mainparam.srmethod.toInt()){
             case 0: origin->setChecked(true); break;
             case 1: way1->setChecked(true); break;
             case 2: way2->setChecked(true); break;
-            case 3: self_adjustment->setChecked(true); break;
+            // case 3: self_adjustment->setChecked(true); break;
             default: way1->setChecked(true); break;
         }
         connect(way1.get(), &QRadioButton::toggled, this, &MainWindow::onMethodChanged);
         connect(way2.get(), &QRadioButton::toggled, this, &MainWindow::onMethodChanged);
         connect(origin.get(), &QRadioButton::toggled, this, &MainWindow::onMethodChanged);
-        connect(self_adjustment.get(), &QRadioButton::toggled, this, &MainWindow::onMethodChanged);
+        // connect(self_adjustment.get(), &QRadioButton::toggled, this, &MainWindow::onMethodChanged);
      
         QGridLayout* gridLayout = new QGridLayout();
         gridLayout->addWidget(way1.get(), 0, 0); 
         gridLayout->addWidget(way2.get(), 0, 1);
         gridLayout->addWidget(origin.get(), 1, 0);
-        gridLayout->addWidget(self_adjustment.get(), 1, 1);
+        // gridLayout->addWidget(self_adjustment.get(), 1, 1);
 
         QWidget* containerWidget = new QWidget();
         containerWidget->setLayout(gridLayout);
@@ -550,7 +550,7 @@ namespace QT {
         wayGroup->addButton(way1.get(), 0);
         wayGroup->addButton(way2.get(), 1);
         wayGroup->addButton(origin.get(), 2);
-        wayGroup->addButton(self_adjustment.get(), 3);
+        // wayGroup->addButton(self_adjustment.get(), 3);
         wayGroup->setExclusive(true);
 
 

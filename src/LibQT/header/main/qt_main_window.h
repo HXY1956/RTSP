@@ -114,7 +114,7 @@ namespace QT {
                 if (methodName.toStdString() == "去雾方式一") way = 1;
                 else if (methodName.toStdString() == "去雾方式二") way = 2;
                 else if (methodName.toStdString() == "原始图像") way = 0;
-                else if (methodName.toStdString() == "自适应调整") way = 3;
+                // else if (methodName.toStdString() == "自适应调整") way = 3;
                 mainparam.srmethod = QString::number(way);
                 emit NewRM(way);
             }

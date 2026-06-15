@@ -22,12 +22,12 @@ namespace SMOKE{
     struct PContext {
         int Unit = 20;        // @单元大小：片段单元中的帧数，调节范围:[17,1000]
         double v0 = 0.664;       // @视觉浓度阈值，调节范围:[0,1]
-        double Light = 2.2;        // @L系数，调节范围:[1,100]
+        double Light = 2;        // @L系数，调节范围:[1,100]
         int f = 5;            // @切换频率，调节范围:[1,100]
         int k = 4;            // @调试片段数，调节范围:[1,100]
         double t_base = 0.2;   // @最小透过率（增加变量名），调节范围:[0,1]
         double s_index2 = 0.7; // @S分量调节范围:[0,1],
-        double v_gamma = 0.4;  // @gamma变化
+        double v_gamma = 0.6;  // @gamma变化
         double v_simu1 = 0.3786;	// @v系数1（增加变量名），调节范围:[0,1]
         double v_simu2 = 0.3911;	// @v系数2（增加变量名），调节范围:[0,1]
         double v_simu3 = 0.4184;	// @v系数3（增加变量名），调节范围:[0,1]
@@ -1588,11 +1588,12 @@ void calc_way_judge(PContext& ctx) {
         case 2:
             _ctx->removerMethods = W13;
             break;
-        case 3:
-            _ctx->removerMethods = W123;
-            break;          
+        // case 3:
+        //     _ctx->removerMethods = W123;
+        //     break;          
         default:
-            _ctx->removerMethods = W123;
+            // _ctx->removerMethods = W123;
+            _ctx->removerMethods = W11;
             break;
         }
      }
