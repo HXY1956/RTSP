@@ -39,17 +39,243 @@ void VIS::VIS_CODER::Stop() {
     }
 }
 
+VIS::VIS_DECODER::StreamInfo
+VIS::VIS_DECODER::detectStreamInfo()
+{
+    StreamInfo result;
+
+    GstDiscoverer* discoverer =
+        gst_discoverer_new(5 * GST_SECOND,
+                           nullptr);
+
+    if (!discoverer)
+        return result;
+
+    gchar* uri =
+        gst_filename_to_uri(filepath_.c_str(),
+                        nullptr);
+
+    if (!uri)
+    {
+        g_object_unref(discoverer);
+        return result;
+    }
+
+    GstDiscovererInfo* info =
+        gst_discoverer_discover_uri(
+            discoverer,
+            uri,
+            nullptr);
+
+    g_free(uri);
+
+    if (!info)
+    {
+        g_object_unref(discoverer);
+        return result;
+    }
+
+    /*
+     * Detect container
+     */
+    GstDiscovererStreamInfo* stream_info =
+        gst_discoverer_info_get_stream_info(info);
+
+    if (stream_info)
+    {
+        GstCaps* caps =
+            gst_discoverer_stream_info_get_caps(
+                stream_info);
+
+        if (caps)
+        {
+            const GstStructure* str =
+                gst_caps_get_structure(caps, 0);
+
+            const gchar* name =
+                gst_structure_get_name(str);
+
+            std::cout << "Container caps: "
+                      << name << std::endl;
+
+            if (g_str_has_prefix(name,
+                     "video/quicktime"))
+            {
+               result.container = "qtdemux";
+            }
+            else if (g_str_has_prefix(name,
+                          "video/x-matroska"))
+            {
+                result.container = "matroskademux";
+            }
+            else if (g_str_has_prefix(name,
+                          "video/webm"))
+            {
+                result.container = "matroskademux";
+            }
+            else if (g_str_has_prefix(name,
+                          "video/mpegts"))
+            {
+                result.container = "tsdemux";
+            }
+            else if (g_str_has_prefix(name,
+                          "video/mpeg"))
+            {
+                result.container = "mpegpsdemux";
+            }
+            else if (g_str_has_prefix(name,
+                          "video/x-msvideo"))
+            {
+                result.container = "avidemux";
+            }
+            else if (g_str_has_prefix(name,
+                          "video/x-flv"))
+            {
+                result.container = "flvdemux";
+            }
+            else if (g_str_has_prefix(name,
+                          "application/ogg"))
+            {
+                result.container = "oggdemux";
+            }
+
+            gst_caps_unref(caps);
+        }
+    }
+
+    /*
+     * Detect codec
+     */
+    GList* video_streams =
+        gst_discoverer_info_get_video_streams(
+            info);
+
+    for (GList* l = video_streams;
+         l != nullptr;
+         l = l->next)
+    {
+        GstDiscovererStreamInfo* vinfo =
+            GST_DISCOVERER_STREAM_INFO(
+                l->data);
+
+        GstCaps* caps =
+            gst_discoverer_stream_info_get_caps(
+                vinfo);
+
+        if (!caps)
+            continue;
+
+        const GstStructure* str =
+            gst_caps_get_structure(caps, 0);
+
+        const gchar* name =
+            gst_structure_get_name(str);
+
+        std::cout << "Video codec caps: "
+                  << name << std::endl;
+
+        if (g_str_has_prefix(name,
+                     "video/x-h264"))
+        {
+            result.codec = "h264parse";
+        }
+        else if (g_str_has_prefix(name,
+                          "video/x-h265"))
+        {
+            result.codec = "h265parse";
+        }
+        else if (g_str_has_prefix(name,
+                          "video/x-vp8"))
+        {
+            result.codec = "vp8parse";
+        }
+        else if (g_str_has_prefix(name,
+                          "video/x-vp9"))
+        {
+            result.codec = "vp9parse";
+        }
+        else if (g_str_has_prefix(name,
+                          "video/x-av1"))
+        {
+            result.codec = "av1parse";
+        }
+        else if (g_str_has_prefix(name,
+                          "image/jpeg"))
+        {
+            result.codec = "jpegparse";
+        }
+        else if (g_str_has_prefix(name,
+                          "video/mpeg"))
+        {
+            gint version = 0;
+
+            gst_structure_get_int(str,
+                          "mpegversion",
+                          &version);
+
+            if (version == 2)
+            {
+                result.codec =
+                    "mpegvideoparse";
+            }
+            else if (version == 4)
+            {
+                result.codec =
+                    "mpeg4videoparse";
+            }
+        }
+
+        gst_caps_unref(caps);
+    }
+
+    g_list_free(video_streams);
+
+    gst_discoverer_info_unref(info);
+
+    g_object_unref(discoverer);
+
+    return result;
+}
+
+
 bool VIS::VIS_DECODER::Init() {
+
+    StreamInfo info = detectStreamInfo();
+
+    if (info.container.empty())
+    {
+        std::cerr << "Unsupported container"
+              << std::endl;
+        return false;
+    }
+
+    if (info.codec.empty())
+    {    
+        std::cerr << "Unsupported codec"
+              << std::endl;
+        return false;
+    }
+
     if(filepath_=="") return false;
-    std::string pipeline;
-    pipeline =
+
+    std::string pipeline =
     "filesrc location=\"" + filepath_ +
-    "\" ! qtdemux name=demux "
-    "demux.video_0 ! queue ! h264parse ! nvv4l2decoder ! "
-    "nvvidconv ! video/x-raw,format=I420,width=" + std::to_string(width) +
-    ",height=" + std::to_string(height) +
-    " ! appsink name=sink emit-signals=false sync=true max-buffers=1 drop=true";
-    
+    "\" ! " + info.container +
+    " name=demux "
+    "demux.video_0 ! queue ! " +
+    info.codec +
+    " ! nvv4l2decoder ! "
+    "nvvidconv ! "
+    "video/x-raw,format=I420,width=" +
+    std::to_string(width) +
+    ",height=" +
+    std::to_string(height) +
+    " ! appsink name=sink "
+    "emit-signals=false "
+    "sync=true "
+    "max-buffers=1 "
+    "drop=true";
+
     GError* error = nullptr;
     _pipeline = gst_parse_launch(pipeline.c_str(), &error);
     if (!_pipeline) {

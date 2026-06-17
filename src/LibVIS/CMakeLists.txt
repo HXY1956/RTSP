@@ -32,12 +32,14 @@ target_include_directories(LibVIS
     ${GSTREAMER_INCLUDE_DIRS}
     ${GSTREAMER_APP_INCLUDE_DIRS}
     ${GSTREAMER_VIDEO_INCLUDE_DIRS}
+    ${GSTREAMER_PBUTILS_INCLUDE_DIRS}
     ${SRC_DIR}/LibVIS/header/HKincludes
 )
 target_link_directories(LibVIS PUBLIC
     ${GSTREAMER_LIBRARY_DIRS}
     ${GSTREAMER_APP_LIBRARY_DIRS}
     ${GSTREAMER_VIDEO_LIBRARY_DIRS}
+    ${GSTREAMER_PBUTILS_LIBRARY_DIRS}
 )
 target_link_libraries(LibVIS PUBLIC
     LibBASE
@@ -45,5 +47,6 @@ target_link_libraries(LibVIS PUBLIC
     ${GSTREAMER_LIBRARIES}
     ${GSTREAMER_APP_LIBRARIES}
     ${GSTREAMER_VIDEO_LIBRARIES}
+    ${GSTREAMER_PBUTILS_LIBRARIES}
     ${SRC_DIR}/LibVIS/header/HKincludes/libMvCameraControl.so.4.7.0.3
 )

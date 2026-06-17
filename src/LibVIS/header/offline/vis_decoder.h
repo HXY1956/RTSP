@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
+#include <gst/pbutils/pbutils.h>
 
 using namespace BASE;
 using namespace std::chrono;
@@ -53,6 +54,12 @@ namespace VIS {
 
     class VIS_DECODER : public VIS_CODER {
     public:
+        struct StreamInfo
+        {
+           std::string container;
+           std::string codec;
+        };
+
         explicit VIS_DECODER(CamInfo _set) : VIS_CODER(&_set) {
             filepath_ = _set.filepath;
         };
@@ -64,6 +71,7 @@ namespace VIS {
             gpointer user_data);
         int fpsnum(){return num;}
         int fpsden(){return den;}
+        StreamInfo detectStreamInfo();
 
     private:
         std::string filepath_;

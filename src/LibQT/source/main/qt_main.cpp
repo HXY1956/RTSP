@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QFont>
 #include <QLoggingCategory>
 #include <opencv2/core.hpp>
 #include "qt_main_window.h"
@@ -11,6 +12,11 @@ int main(int argc, char* argv[]) {
     );
     qRegisterMetaType<uint64_t>("uint64_t");
     qRegisterMetaType<cv::Mat>("cv::Mat");
+
+    QFont font("Noto Sans CJK SC");
+    font.setPointSize(9);
+
+    app.setFont(font);
 
     QT::MainWindow w;
 
