@@ -38,6 +38,9 @@ using namespace BASE;
 using namespace std::chrono;
 
 namespace QT {
+    /**
+	*@简介  存储项目参数的结构体
+    */
     struct MainParams {
         QString sensormode   = "0";
         QString rtspmode     = "0";
@@ -63,12 +66,15 @@ namespace QT {
     };
     using DeviceInfo = std::map<std::string, std::string>;
 
+    /**
+	*@简介  项目主窗口类，继承自QMainWindow，负责管理UI和信号槽连接
+    */
     class MainWindow : public QMainWindow {
         Q_OBJECT
     public:
         explicit MainWindow(QWidget* parent = nullptr);
         ~MainWindow();
-
+    
     signals:
         void startImageReader();
         void stopImageReader();
@@ -152,15 +158,55 @@ namespace QT {
         };
 
     private:
+        /**
+		*@简介  初始化函数，负责加载参数、设置UI和连接线程
+        */
         void Init();
+
+        /**
+        *@简介  显示错误信息并退出程序
+        */
         void showErrorAndExit(const QString& message);
+
+        /**
+		*@简介  从UI读取参数并更新mainparam结构体
+        */
+
         void ReadFromUI();
+
+        /**
+		*@简介  设置UI，包括创建按钮、组合框、编辑框等，并将它们添加到布局中
+        */
         void setupUi();
+
+        /**
+		*@简介  连接线程，包括图像读取线程、音频读取线程和RTSP工作线程
+        */
         void ConnectThreads();
+
+        /**
+		*@简介  创建导航组框，包括开始、停止、录制和退出按钮
+        */
         void createNavGroupBox();
+
+        /**
+		*@简介  杀死线程，确保所有线程在退出前被正确终止
+        */
         void KillThread();
+
+        /**
+		*@简介  从配置文件中加载参数，如果配置文件不存在或读取失败，则使用默认参数
+        */
         MainParams loadParams();
+
+        /**
+		*@简介  保存参数到配置文件中，以便下次启动时加载
+        */
         void saveParams(const MainParams& p);
+
+        /**
+		*@简介  将参数重置为出厂默认值，并更新UI和配置文件
+        */
         void resetToFactoryDefault();
 
     private:

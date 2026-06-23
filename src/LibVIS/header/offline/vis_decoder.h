@@ -12,6 +12,9 @@ using namespace BASE;
 using namespace std::chrono;
 
 namespace VIS {
+    /**
+	*@简介  视频编解码器基类，提供初始化、捕获和停止功能
+    */
     class VIS_CODER {
     public:
         VIS_CODER(CamInfo* _set) {
@@ -52,6 +55,9 @@ namespace VIS {
         std::string outformat;
     };
 
+    /**
+	*@简介  离线视频解码器类，继承自VIS_CODER，提供对视频文件的解码功能
+    */
     class VIS_DECODER : public VIS_CODER {
     public:
         struct StreamInfo
@@ -63,15 +69,24 @@ namespace VIS {
         explicit VIS_DECODER(CamInfo _set) : VIS_CODER(&_set) {
             filepath_ = _set.filepath;
         };
+
+        /**
+		*@简介  初始化函数，负责设置GStreamer管道和元素，并启动播放状态
+        */
         bool Init() override;
+
+        /**
+		*@简介  从视频文件中捕获一帧图像，并返回时间戳和图像数据
+        */
         bool Capture(uint64_t& ImgT, cv::Mat& f) override;
-        void on_pad_added(
-            GstElement* src,
-            GstPad* pad,
-            gpointer user_data);
+
+        /**
+		*@简介  从视频文件中检测流信息，包括容器类型和编解码器类型
+        */
+        StreamInfo detectStreamInfo();
+
         int fpsnum(){return num;}
         int fpsden(){return den;}
-        StreamInfo detectStreamInfo();
 
     private:
         std::string filepath_;

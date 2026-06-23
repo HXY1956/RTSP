@@ -3,6 +3,10 @@
 #include "vis_decoder.h"
 
 namespace VIS {
+
+    /**
+	*@简介  在线视频流读取器类，继承自VIS_CODER，提供对视频流的初始化、捕获和关闭功能
+    */
     class VIS_STREAMER : public VIS_CODER {
     public:
         explicit VIS_STREAMER(CamInfo _set) : VIS_CODER(&_set) {

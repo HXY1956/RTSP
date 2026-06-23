@@ -28,6 +28,10 @@ namespace QT{
 }
 
 namespace QT {
+    /**
+	*@简介  RTSP客户端类，继承自QObject，整合并提供对RTSP流的读取、解码和处理功能。它使用RTSP_BASE进行RTSP推流，并通过信号与槽机制与其他组件进行通信。
+    *       该类支持视频、音频和烟雾帧的推送，并提供了启动、停止和参数更新的接口。
+    */
     class QT_RTSP_CLIENT : public QObject {
         Q_OBJECT
     public slots:

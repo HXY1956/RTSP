@@ -18,6 +18,9 @@ namespace AUDIO {
 }
 
 namespace QT {
+    /**
+	*@简介  音频解码器类，继承自QObject，整合并提供对音频流的读取、解码和处理功能。它使用AUDIO_CODER进行音频解码，并通过信号与槽机制与其他组件进行通信。
+    */
     class QT_AUDIO_READER : public QObject {
         Q_OBJECT
     public slots:
@@ -36,6 +39,9 @@ namespace QT {
         ~QT_AUDIO_READER() override;
 
     protected:
+        /**
+		*@简介  单个周期的音频解码处理函数，负责从音频流中解码一帧音频数据，并将其通过信号发送出去
+        */
         void OneEpoch();
 
     private:

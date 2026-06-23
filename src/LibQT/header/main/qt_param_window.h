@@ -21,6 +21,10 @@
 #include "qt_global.h"
 
 namespace QT {
+    /**
+	*@简介  视频去雾处理参数结构体，包含了视频去雾处理所需的各项参数，如单位大小、调试段数、切换频率、初始速度、光照强度、基准时间、指数、融合增益、伽马值以及拟合参数等。
+    *       该结构体用于在视频去雾处理过程中传递和存储相关参数。
+    */
     struct SmokeParams {
         int    unitSize        = 20;
         int    debugSegmentNum = 4;
@@ -38,7 +42,10 @@ namespace QT {
         int function = 0;
     };
 
-
+    /**
+	*@简介  视频去雾处理参数设置窗口类，继承自QMainWindow，提供对视频去雾处理参数的设置和保存功能。该类包含多个参数输入控件，如QDoubleSpinBox和QSpinBox，
+    *       用于实时调整视频处理的各项参数，并通过信号与槽机制与其他组件进行通信。
+    */
     class ParamWindow : public QMainWindow {
         Q_OBJECT
     public:

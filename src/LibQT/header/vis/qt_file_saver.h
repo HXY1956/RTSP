@@ -34,7 +34,9 @@
 using namespace BASE;
 
 namespace QT{
-
+    /**
+	*@简介  视频录制器类，继承自QThread，提供对视频和音频流的录制功能。它使用GStreamer进行媒体处理，并支持将视频和音频帧推送到文件中。该类提供了初始化、开始录制、停止录制和线程管理的接口。
+    */
     class FILE_SAVER : public QThread {
         Q_OBJECT
 

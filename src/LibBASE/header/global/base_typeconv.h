@@ -5,6 +5,9 @@
 #include <iomanip>
 #include <iostream>
 
+/**
+*@简介  提供一些类型转换和比较的辅助函数，包括浮点数比较、字符串与数值之间的转换，以及字符串的修剪和替换功能
+*/
 namespace BASE
 {
     /** @brief double equivalence according to machine capability. */

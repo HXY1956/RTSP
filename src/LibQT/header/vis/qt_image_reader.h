@@ -16,6 +16,9 @@ namespace VIS {
 }
 
 namespace QT {
+    /**
+	*@简介  视频解码器类，继承自QObject，整合并提供对视频流的读取、解码和处理功能。它使用VIS_CODER进行视频解码，并通过信号与槽机制与其他组件进行通信。
+    */
     class QT_IMG_READER : public QObject {
         Q_OBJECT
     public slots:
@@ -35,6 +38,9 @@ namespace QT {
         void _stop() { stop = true; }
     
     protected:
+        /**
+		*@简介  单个周期的视频解码处理函数，负责从视频流中解码一帧图像数据，并将其通过信号发送出去
+        */
         void OneEpoch();
 
     private:

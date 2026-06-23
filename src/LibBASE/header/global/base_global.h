@@ -15,6 +15,9 @@
 #include <chrono>
 #include <algorithm>
 
+/**
+*@简介  提供一些全局变量和结构体，用于存储音频、摄像头和RTSP相关的信息，以及一些辅助函数
+*/
 namespace BASE {
     extern int64_t ProjectStartTime;
 
