@@ -112,7 +112,7 @@ private:
     /**
 	*@简介  当客户端断开连接时调用的回调函数，用于处理客户端断开连接事件。
     */
-    static GstFlowReturn client_removed_connection(GstRTSPMediaFactory* factory, GstRTSPMedia* media, gpointer user_data);
+    static void client_removed_connection(GstRTSPMedia *media, gpointer user_data);
 };
 
 }

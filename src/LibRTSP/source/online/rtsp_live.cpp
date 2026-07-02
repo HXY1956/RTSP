@@ -134,9 +134,11 @@ RTSP_LIVE::~RTSP_LIVE() {
 void RTSP_LIVE::cleanup() {
     if (!is_initialized) return;
 
+    // ① 设置停止标志，防止新连接和回调继续操作
     should_stop = true;
     paused = true;
 
+    // ② 关闭所有客户端（触发 unprepared 信号，但回调会因 should_stop 提前返回）
     if (server) {
         gst_rtsp_server_client_filter(server,
             [](GstRTSPServer*, GstRTSPClient* client, gpointer) {
@@ -146,22 +148,30 @@ void RTSP_LIVE::cleanup() {
             NULL);
     }
 
+    // ③ 停止主循环（注意：可能仍有事件在队列中）
     if (loop && g_main_loop_is_running(loop)) {
         g_main_loop_quit(loop);
     }
+
+    // ④ 等待工作线程结束（主循环退出后，线程会结束）
     if (worker.joinable()) {
         worker.join();
     }
 
+    // ⑤ 断开 factory 的信号（已有）
     if (factory && G_IS_OBJECT(factory)) {
         g_signal_handlers_disconnect_by_func(factory, (gpointer)media_config, this);
     }
 
-    if (server && G_IS_OBJECT(server)) {
+    // ⑥ 释放资源（释放 appsrc 引用等）
+    if (video_src) { gst_object_unref(video_src); video_src = nullptr; }
+    if (audio_src) { gst_object_unref(audio_src); audio_src = nullptr; }
+    if (smoke_src) { gst_object_unref(smoke_src); smoke_src = nullptr; }
+
+    if (server) {
         gst_object_unref(server);
         server = nullptr;
     }
-
     factory = nullptr;
 
     if (loop) {
@@ -173,19 +183,13 @@ void RTSP_LIVE::cleanup() {
         context = nullptr;
     }
 
-    video_src = nullptr;
-    audio_src = nullptr;
-    smoke_src = nullptr;
-
     server_id = 0;
-    should_stop = false;
-    paused = false;
     stream_start_pts = 0;
-    curr_pts_video = UINT64_MAX;
-    curr_pts_audio = UINT64_MAX;
+    curr_pts_video = 0;
+    curr_pts_audio = 0;
     is_initialized = false;
 
-    std::cerr << "[RTSP] Main Loop Stopped" << std::endl;
+    std::cerr << "[RTSP] Cleanup complete" << std::endl;
 }
 
 bool RTSP_LIVE::Init() {
@@ -296,7 +300,6 @@ bool RTSP_LIVE::Init() {
 
     // 连接信号
     g_signal_handlers_disconnect_by_func(factory, (gpointer)media_config, this);
-    g_signal_handlers_disconnect_by_func(factory, (gpointer)client_removed_connection, this);
     g_signal_connect(factory, "media-configure", G_CALLBACK(media_config), this);
 
     std::string mount_path = "/" + suffix;
@@ -385,11 +388,15 @@ GstFlowReturn RTSP_LIVE::media_config(GstRTSPMediaFactory* factory, GstRTSPMedia
     return GST_FLOW_OK;
 }
 
-GstFlowReturn RTSP_LIVE::client_removed_connection(GstRTSPMediaFactory* factory, GstRTSPMedia* media, gpointer user_data) {
+void RTSP_LIVE::client_removed_connection(GstRTSPMedia *media, gpointer user_data) {
     auto* self = static_cast<RTSP_LIVE*>(user_data);
-    std::cerr << "Client disconnected" << std::endl;
+    // 先检查是否正在停止，避免访问无效对象
+    if (self->should_stop) {
+        std::cerr << "Client disconnected but server is stopping, ignore." << std::endl;
+        return;
+    }
     self->paused = true;
-    return GST_FLOW_OK;
+    std::cerr << "Client disconnected" << std::endl;
 }
 
 } // namespace RTSP
