@@ -78,6 +78,8 @@ protected:
 
     bool isVideo = false;
     bool isAudio = false;
+
+    bool isLive = false;
 };
 
 /**

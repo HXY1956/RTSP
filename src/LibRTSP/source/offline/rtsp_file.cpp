@@ -31,26 +31,33 @@ bool RTSP::RTSP_FILE::Init() {
 
     std::ostringstream launch;
 
-    switch(zipF){
-        case RTSP::zip_format::H264:{
-            launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
-            << ",width=" << std::to_string(Isize.first) << ",height=" << std::to_string(Isize.second) <<",framerate="<<framerate<<"/1"
-            << " ! videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h264enc bitrate=5000000 key-int-max=30 ! "
+    if(isVideo){
+        switch(zipF){
+            case RTSP::zip_format::H264:{
+                launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
+                << ",width=" << std::to_string(Isize.first) << ",height=" << std::to_string(Isize.second) <<",framerate="<<framerate<<"/1"
+                << " ! videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h264enc bitrate=5000000 key-int-max=30 ! "
                "h264parse ! video/x-h264,stream-format=avc,alignment=au ! queue ! mux. ) " ;
-            break;
-        }
-        case RTSP::zip_format::H265:{
-            launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
-            << ",width=" << std::to_string(Isize.first) << ",height=" << std::to_string(Isize.second) <<",framerate="<<framerate<<"/1"
-            << " ! videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h265enc bitrate=5000000 key-int-max=30 ! "
-               "h265parse ! video/x-h265,stream-format=hvc1,alignment=au ! queue ! mux. ) " ;
-            break;
+                break;
+            }
+            case RTSP::zip_format::H265:{
+                launch << "( appsrc name=smokesrc is-live=true format=time caps=video/x-raw,format=" << format
+                << ",width=" << std::to_string(Isize.first) << ",height=" << std::to_string(Isize.second) <<",framerate="<<framerate<<"/1"
+                << " ! videoconvert ! video/x-raw,format=NV12 ! nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h265enc bitrate=5000000 key-int-max=30 ! "
+                   "h265parse ! video/x-h265,stream-format=hvc1,alignment=au ! queue ! mux. ) " ;
+                break;
+            }
         }
     }
-    launch  << "( appsrc name=audiosrc is-live=true format=time caps=audio/x-raw,format="<< audio_format
-            << ",channels=" << std::to_string(channels) << ",rate=" << std::to_string(sample_rate) << ",layout=interleaved ! "
-            << "audioconvert ! audioresample ! queue max-size-buffers=20 ! voaacenc ! aacparse ! queue max-size-buffers=20 ! mux. ) "
-            << "matroskamux name=mux streamable=true ! filesink location=\"" << filepath << "\"";
+
+
+    if(isAudio){
+        launch  << "( appsrc name=audiosrc is-live=true format=time caps=audio/x-raw,format="<< audio_format
+                << ",channels=" << std::to_string(channels) << ",rate=" << std::to_string(sample_rate) << ",layout=interleaved ! "
+                << "audioconvert ! audioresample ! queue max-size-buffers=20 ! voaacenc ! aacparse ! queue max-size-buffers=20 ! mux. ) ";
+    }
+
+    launch << "qtmux name=mux streamable=true ! filesink location=\"" << filepath << "\"";
 
     std::string launch_str = launch.str();
 
@@ -60,25 +67,28 @@ bool RTSP::RTSP_FILE::Init() {
         return false;
     }
 
-    smoke_src = gst_bin_get_by_name(GST_BIN(file_pipeline), "smokesrc");
-    audio_src = gst_bin_get_by_name(GST_BIN(file_pipeline), "audiosrc");
-
-    if (!smoke_src) std::cerr << "smokesrc NOT found\n";
-    if (!audio_src) std::cerr << "audiosrc NOT found\n";
-
-    if (smoke_src) {
-        g_object_set(G_OBJECT(smoke_src),
-            "is-live", FALSE,
-            "format", GST_FORMAT_TIME,
-            "do-timestamp", FALSE, 
-            NULL);
+    if(isVideo){
+        smoke_src = gst_bin_get_by_name(GST_BIN(file_pipeline), "smokesrc");
+        if(!smoke_src) std::cerr << "smokesrc NOT found\n";
+        else {
+            g_object_set(G_OBJECT(smoke_src),
+                "is-live", FALSE,
+                "format", GST_FORMAT_TIME,
+                "do-timestamp", FALSE, 
+                NULL);
+        }
     }
-    if (audio_src) {
-        g_object_set(G_OBJECT(audio_src),
-            "is-live", FALSE,
-            "format", GST_FORMAT_TIME,
-            "do-timestamp", FALSE,
-            NULL);
+
+    if(isAudio){
+        audio_src = gst_bin_get_by_name(GST_BIN(file_pipeline), "audiosrc");
+        if (!audio_src) std::cerr << "audiosrc NOT found\n";
+        else {
+            g_object_set(G_OBJECT(audio_src),
+                "is-live", FALSE,
+                "format", GST_FORMAT_TIME,
+                "do-timestamp", FALSE,
+                NULL);
+        }
     }
 
     GstStateChangeReturn ret = gst_element_set_state(file_pipeline, GST_STATE_PLAYING);

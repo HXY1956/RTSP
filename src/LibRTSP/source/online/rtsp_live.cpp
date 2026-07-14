@@ -106,7 +106,10 @@ void RTSP_BASE::push_audio_frame(const std::vector<uint8_t>& pcm_s16, const uint
     uint64_t duration_ns = (uint64_t)((double)samples_per_channel * 1e9 / sample_rate);
     GST_BUFFER_DURATION(buffer) = duration_ns;
 
-    uint64_t _pts_ns = std::max(pts_ns - stream_start_pts - 0.5 * 1e9 , 0.0);
+    double delay = 0.0;
+    if(isLive) delay = 0.5;
+    uint64_t _pts_ns = std::max(pts_ns - stream_start_pts - delay * 1e9 , 0.0);
+
     GST_BUFFER_PTS(buffer) = (GstClockTime)_pts_ns;
     GST_BUFFER_DTS(buffer) = (GstClockTime)_pts_ns;
 
@@ -125,6 +128,7 @@ RTSP_LIVE::RTSP_LIVE(AudioInfo Aset, CamInfo Cset, RtspInfo Rset)
     else if (sample_size == 2) audio_format = "S16LE";
     else if (sample_size == 4) audio_format = "S32LE";
     else audio_format = "S16LE";
+    isLive = true;
 }
 
 RTSP_LIVE::~RTSP_LIVE() {

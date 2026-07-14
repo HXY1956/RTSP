@@ -274,7 +274,7 @@ bool VIS::VIS_DECODER::Init() {
     "emit-signals=false "
     "sync=true "
     "max-buffers=1 "
-    "drop=true";
+    "drop=false";
 
     GError* error = nullptr;
     _pipeline = gst_parse_launch(pipeline.c_str(), &error);
